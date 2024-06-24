@@ -5,7 +5,7 @@ import os
 import sys
 import math
 
-# Global variable to store the entry price
+# Global variable to store entry price
 entry_price_stock = None
 entry_price_crypto = None
 count=0
@@ -16,7 +16,7 @@ a=0
 crypto_action="none"
 stock_action="none"
 
-# Function to check the stock price and trigger actions
+# Function to check stock price and trigger actions
 def check_stock_price(ticker, threshold, action, amount):
     global entry_price_stock
     global count
@@ -26,7 +26,7 @@ def check_stock_price(ticker, threshold, action, amount):
     current_price = float(r.robinhood.stocks.get_latest_price(ticker)[0])
     print(f"{ticker} current price: ${current_price}")
     if entry_price_stock is None:
-        # Set entry price if it's not set yet
+        # Set entry price if not set yet
         entry_price_stock = current_price
         print(f"Entry price for {ticker}: ${entry_price_stock}")
     if stock_action == "buy" and current_price <= threshold and count==1:
@@ -49,11 +49,12 @@ def check_crypto_price(ticker, threshold, action, amount):
     global crypto_action
     global t
     print(crypto_action)
-
+    
     current_price = float(r.robinhood.crypto.get_crypto_quote(ticker)["ask_price"])
-    print(f"{ticker} current price: ${current_price}")
+    bid_price = float(r.robinhood.crypto.get_crypto_quote(ticker)["bid_price"])
+    print(f"{ticker} current price: ${bid_price}")
     if entry_price_crypto is None:
-        # Set entry price if it's not set yet
+        # Set entry price if not set yet
         entry_price_crypto = current_price
         print(f"Entry price for {ticker}: ${entry_price_crypto}")
     if crypto_action== "buy" and current_price < threshold and count==1:
@@ -65,29 +66,31 @@ def check_crypto_price(ticker, threshold, action, amount):
         # print(f"python robin.py {ticker} buy {amount} crypto")
         os.system(f"python robin.py {ticker} buy {amount} crypto")
         crypto_action="sell"
-    elif crypto_action=="sell" and current_price >= entry_price_crypto * 1.10:
+    elif crypto_action=="sell" and bid_price >= entry_price_crypto * 1.0003:
         count=1
-        # Sell if current price is 5% above entry price
-        print(f"{ticker} price exceeds 10% above entry price (${entry_price_crypto * 1.10}). Triggering sell action...")
+        # Sell if current price is .03% above entry price
+        print(f"{ticker} price exceeds 10% above entry price (${entry_price_crypto * 1.0003}). Triggering sell action...")
         os.system(f"python robin.py {ticker} sell {amount} crypto")
         entry_price_crypto = None  # Reset entry price after selling
         crypto_action="buy"
         t=current_price
+    sell_price = entry_price_crypto*1.0003
+    print(sell_price)
 
 
-# Function to schedule the job for checking stock prices
+# Function to schedule job for checking stock prices
 def schedule_stock_check():
     global count
     global stock_action
     global t
     global tick
     global a
-    # Define your monitoring parameters here
-    ticker = tick  # Change this to the stock ticker you want to monitor
-    threshold = float(t)  # Change this to your desired buy threshold
-    sell_threshold = None  # No need for sell threshold here
-    # action = sys.argv[1:][1]  # Change this to "buy" or "sell" based on your requirement
-    amount = a   # Change this to the amount you want to buy/sell
+
+    ticker = tick 
+    threshold = float(t) 
+    sell_threshold = None  
+    # action = sys.argv[1:][1]  
+    amount = a  
     # Schedule the job to run every 30 seconds
     if stock_action=="buy":
             count+=1
@@ -99,20 +102,20 @@ def schedule_crypto_check():
     global t
     global tick
     global a
-    # Define your monitoring parameters here
-    ticker = tick  # Change this to the stock ticker you want to monitor
-    threshold = float(t) # Change this to your desired buy threshold
-    sell_threshold = None  # No need for sell threshold here
+
+    ticker = tick 
+    threshold = float(t) 
+    sell_threshold = None 
     amount = a
 
     if crypto_action=="buy":
             count+=1
     # amount = round(amount, 1)
-       # Change this to the amount you want to buy/sell
+
     # Schedule the job to run every 30 seconds
     schedule.every(4).seconds.do(check_crypto_price, ticker, threshold, crypto_action, amount)
 
-# Main function to start the monitoring process
+# Main function to start monitoring process
 def main():
     global crypto_action
     global stock_action
@@ -130,14 +133,13 @@ def main():
     asset_type = input("Asset Type (stock/crypto): ")
 
     # asset_type = sys.argv[1:][0]
-       # Change this to "buy" or "sell" based on your requirement
 
-    # Schedule the stock check job
+    # Schedule stock check job
     if asset_type=='stock':
         tick = input("Ticker: ")
         tick = tick.upper()
         stock_action = input("Action (buy/sell): ")
-        a = input("Amount: ")
+        a = input("Amount ($): ")
         if stock_action=="buy":
             t= input("Min threshold price: ")
         schedule_stock_check()
@@ -146,12 +148,12 @@ def main():
         tick = input("Ticker: ")
         tick = tick.upper()
         crypto_action = input("Action (buy/sell): ")
-        a = input("Amount: ")
+        a = input("Amount ($): ")
         if crypto_action=="buy":
             t= input("Min threshold price: ")
         schedule_crypto_check()
     
-        # Run the scheduler
+        # Run scheduler
     while True:
         schedule.run_pending()
         time.sleep(1)
@@ -160,5 +162,5 @@ def main():
 if __name__ == "__main__":
     main()
 
-#Example Usage:
-#python scheduler.py 
+# Example Usage:
+# python scheduler.py 
